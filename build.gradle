@@ -1,0 +1,50 @@
+group 'br.uff'
+version '0.1'
+
+buildscript {
+    ext.kotlin_version = '1.1.2'
+    ext.provlib_version = '0.7.3'
+
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'kotlin'
+
+repositories {
+    mavenCentral()
+}
+
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'br.uff.scicumulus2prov.Main'
+    }
+}
+
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Projeto Rio Formoso-Datalogger Server',
+                'Implementation-Version': version, 'Main-Class': 'br.rioformoso.MainKt'
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+    compile("org.openprovenance.prov:prov-model:$provlib_version")
+    compile "org.openprovenance.prov:prov-n:$provlib_version"
+    compile("org.openprovenance.prov:prov-xml:$provlib_version")
+    compile 'org.postgresql:postgresql:9.4.1212'
+    compile 'com.beust:jcommander:1.48'
+    compile 'org.sql2o:sql2o:1.5.4'
+    compile 'dom4j:dom4j:1.6.1'
+}

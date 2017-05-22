@@ -22,10 +22,13 @@
 package br.uff.scicumulus2prov.core
 
 import org.openprovenance.prov.model.*
+import org.openprovenance.prov.notation.NotationConstructor
 import org.openprovenance.prov.notation.Utility
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 import java.sql.Timestamp
 import java.time.format.DateTimeFormatter
-import java.util.*
 import javax.xml.datatype.DatatypeFactory
 
 /**
@@ -49,21 +52,27 @@ fun qn(qn: QualifiedNames, name: String): QualifiedName {
 
 var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-class DocumentBuilder {
+class DocumentBuilder(fileOut: File) {
 
     private val SCICUMULUS_NS = "https://scicumulusc2.wordpress.com"
     private val SCICUMULUS_PREFIX = "sci"
-
-    private val elements = ArrayList<StatementOrBundle>()
+    val document = pFactory.newDocument()
+    val output = OutputStreamWriter(FileOutputStream(fileOut), "UTF-8")
+    private val nc: NotationConstructor
+    private val bt: BeanTraversal
+    private val u: ProvUtilities = ProvUtilities()
 
     init {
         ns.addKnownNamespaces()
         ns.register(SCICUMULUS_PREFIX, SCICUMULUS_NS)
+        document.namespace = ns
+        nc = NotationConstructor(output)
+        bt = BeanTraversal(nc, pFactory)
+        initDocument()
     }
 
     fun addEntity(qn: QualifiedNames, id: String): Entity {
         val entity = pFactory.newEntity(qn(qn, id))
-        elements.add(entity)
         return entity
     }
 
@@ -76,41 +85,40 @@ class DocumentBuilder {
         val end = DatatypeFactory.newInstance().newXMLGregorianCalendar(endTime.toLocalDateTime().format(formatter))
         val act = pFactory.newActivity(qn(QualifiedNames.PROV, id), from, end, listOf())
         act.label.add(pFactory.newInternationalizedString(label))
-
-        elements.add(act)
         return act
     }
 
-    fun addWasInformedBy(actid: Long, dependency: Long): WasInformedBy? {
+    fun addWasInformedBy(actid: Long, dependency: Long): WasInformedBy {
         val wasInformedBy = pFactory.newWasInformedBy(null, qn(QualifiedNames.PROV, actid.toString()), qn(QualifiedNames.PROV, dependency.toString()))
-        elements.add(wasInformedBy)
         return wasInformedBy
     }
 
     fun addWasInformedBy(relid: Long, actid: Long, dependency: Long): WasInformedBy? {
         val wasInformedBy = pFactory.newWasInformedBy(qn(QualifiedNames.PROV, relid.toString()), qn(QualifiedNames.PROV, actid.toString()), qn(QualifiedNames.PROV, dependency.toString()))
-        elements.add(wasInformedBy)
         return wasInformedBy
     }
 
-    fun build() {
-        val document = pFactory.newDocument()
-        document.statementOrBundle.addAll(elements)
-        document.namespace = ns
-        val u = Utility()
-        println("****************************************")
-        u.writeDocument(document, System.out, pFactory)
-        println("****************************************")
+
+    fun initDocument() {
+        val docNamespace = document.getNamespace()
+        Namespace.withThreadNamespace(docNamespace)
+        nc.startDocument(document.getNamespace())
+        nc.flush()
     }
 
+    fun writeElement(element: StatementOrBundle) {
+        if (element is Statement) {
+            u.doAction(element, bt)
+        }
+        if (element is Bundle) {
+            Namespace.withThreadNamespace(Namespace(document.namespace))
+            bt.doAction(element, u)
+        }
+    }
 
+    fun finishDocument() {
+        nc.newDocument(null, null, null)
+        nc.flush()
+        nc.close()
+    }
 }
-
-
-//fun Entity.setValue(pFactory: ProvFactory, value: Any) {
-//    this.value = pFactory.newValue(value.toString(), pFactory.name.XSD_STRING)
-//}
-//
-//fun Activity.addAttribute(pFactory: ProvFactory) {
-//    pFactory.add (this, pFactory.newQualifiedName("var", "kmmk", "sddddd"))
-//}

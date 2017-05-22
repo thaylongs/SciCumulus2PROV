@@ -25,18 +25,18 @@ import br.uff.scicumulus2prov.BasicInformation
 import br.uff.scicumulus2prov.model.CActivity
 import br.uff.scicumulus2prov.model.CWorkflow
 import br.uff.scicumulus2prov.model.EWorkflow
-import org.sql2o.data.Column
+import java.io.File
 
 /**
  * @author Thaylon Guedes Santos
  * @email thaylongs@gmail.com
  */
-class SciCumulus2PROV(val basicInfo: BasicInformation) {
+class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
 
     private val dao = BasicDao(basicInfo)
     private val conceptualDao = ConceptualDataDAO(dao)
     private val executionDao = ExecutionDataDAO(dao)
-    private val document = DocumentBuilder()
+    private val document = DocumentBuilder(fileOut)
 
     fun start() {
         val workflow = conceptualDao.findCWorkflowByTAG(basicInfo.workflowTag)
@@ -50,13 +50,11 @@ class SciCumulus2PROV(val basicInfo: BasicInformation) {
             conceptualDao.getAllFieldOfActovity(it.actid).forEach { field ->
                 act.addAttribute("column", field.fname, AttributeType.valueOf(field.ftype.toUpperCase()))
             }
+            document.writeElement(act)
         }
-        atividades.forEach {
-            loadWasInformedBy(it)
-        }
+        atividades.forEach { loadWasInformedBy(it) }
         loadAllEntities(workflow, eworkflow)
-        println("Terminei")
-        document.build()
+        document.finishDocument()
     }
 
     private fun loadAllEntities(workflow: CWorkflow, eworkflow: EWorkflow) {
@@ -64,13 +62,17 @@ class SciCumulus2PROV(val basicInfo: BasicInformation) {
         relations.forEach { relation ->
             val table = executionDao.getAllDataFrom(eworkflow, relation)
             val colunasValidas = table.columns().filter { it.name != "ik" && it.name != "ewkfid" && it.name != "ok" }
-
+            val containsOkColumn = table.columns().any { it.name == "ok" }
             for (linha in table.rows()) {
-                val id = "${relation}_${eworkflow.ewkfid}_${linha.getObject("ik")}"
+                var id = "${relation}_${eworkflow.ewkfid}_${linha.getObject("ik")}"
+                if (containsOkColumn) {
+                    id += "_" + linha.getObject("ok")
+                }
                 val entity = document.addEntity(id)
                 for (coluna in colunasValidas) {
                     entity.addAttribute(coluna.name, linha.getString(coluna.index), null)
                 }
+                document.writeElement(entity)
             }
         }
     }
@@ -79,7 +81,7 @@ class SciCumulus2PROV(val basicInfo: BasicInformation) {
     private fun loadWasInformedBy(act: CActivity) {
         val relations = conceptualDao.getActivitieDependency(act.actid)
         relations.forEach {
-            document.addWasInformedBy(act.actid, it.actid)
+            document.writeElement(document.addWasInformedBy(act.actid, it.actid))
         }
     }
 }

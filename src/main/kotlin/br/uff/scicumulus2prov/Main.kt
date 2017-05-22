@@ -23,6 +23,7 @@ package br.uff.scicumulus2prov
 
 import br.uff.scicumulus2prov.core.SciCumulus2PROV
 import com.beust.jcommander.Parameter
+import java.io.File
 
 /**
  * @author Thaylon Guedes Santos
@@ -72,5 +73,5 @@ fun main(argv: Array<String>) {
             workflowTag = "sciphytreeminer",
             execTag = "wftreeminer_1-1")
 
-    SciCumulus2PROV(basicInfo).start()
+    SciCumulus2PROV(basicInfo,File("output.provn")).start()
 }

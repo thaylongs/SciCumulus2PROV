@@ -80,7 +80,7 @@ class DocumentBuilder(fileOut: File) {
         return addEntity(QualifiedNames.PROV, id)
     }
 
-    fun addActicity(id: String, label: String, startTime: Timestamp, endTime: Timestamp): Activity {
+    fun newActicity(id: String, label: String, startTime: Timestamp, endTime: Timestamp): Activity {
         val from = DatatypeFactory.newInstance().newXMLGregorianCalendar(startTime.toLocalDateTime().format(formatter))
         val end = DatatypeFactory.newInstance().newXMLGregorianCalendar(endTime.toLocalDateTime().format(formatter))
         val act = pFactory.newActivity(qn(QualifiedNames.PROV, id), from, end, listOf())
@@ -88,14 +88,18 @@ class DocumentBuilder(fileOut: File) {
         return act
     }
 
-    fun addWasInformedBy(actid: Long, dependency: Long): WasInformedBy {
+    fun newWasInformedBy(actid: Long, dependency: Long): WasInformedBy {
         val wasInformedBy = pFactory.newWasInformedBy(null, qn(QualifiedNames.PROV, actid.toString()), qn(QualifiedNames.PROV, dependency.toString()))
         return wasInformedBy
     }
 
-    fun addWasInformedBy(relid: Long, actid: Long, dependency: Long): WasInformedBy? {
+    fun newWasInformedBy(relid: Long, actid: Long, dependency: Long): WasInformedBy? {
         val wasInformedBy = pFactory.newWasInformedBy(qn(QualifiedNames.PROV, relid.toString()), qn(QualifiedNames.PROV, actid.toString()), qn(QualifiedNames.PROV, dependency.toString()))
         return wasInformedBy
+    }
+
+    fun newWasGeneratedBy(entityID: String, actid: String): WasGeneratedBy {
+        return pFactory.newWasGeneratedBy(null, qn(QualifiedNames.PROV, entityID), null, qn(QualifiedNames.PROV, actid))
     }
 
 

@@ -45,16 +45,31 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
 
         atividades.forEach {
             val executionInfo = executionDao.findEActivityByActAndEWorkflow(it, eworkflow)
-            val act = document.addActicity("a" + it.actid, it.tag, executionInfo.starttime, executionInfo.endtime)
+            val act = document.newActicity("a" + it.actid, it.tag, executionInfo.starttime, executionInfo.endtime)
             act.setType(it.atype)
             conceptualDao.getAllFieldOfActovity(it.actid).forEach { field ->
                 act.addAttribute("column", field.fname, AttributeType.valueOf(field.ftype.toUpperCase()))
             }
             document.writeElement(act)
         }
+
         atividades.forEach { loadWasInformedBy(it) }
         loadAllEntities(workflow, eworkflow)
+        loadAllwasGeneratedBy(eworkflow)
         document.finishDocument()
+    }
+
+    private fun loadAllwasGeneratedBy(eworkflow: EWorkflow) {
+        val result = executionDao.getAllOutputTables(eworkflow)
+        result.rows().forEach { linha ->
+            val rname = linha.getString("rname")
+            val actid = linha.getString("actid")
+            executionDao.getAllExecutionIDsOF(rname, eworkflow).rows().forEach { ids ->
+                val id = "${rname}_${eworkflow.ewkfid}_${ids.getObject("ik")}_${ids.getObject("ok")}"
+                val wasGeneratedBy = document.newWasGeneratedBy(id, "a" + actid)
+                document.writeElement(wasGeneratedBy)
+            }
+        }
     }
 
     private fun loadAllEntities(workflow: CWorkflow, eworkflow: EWorkflow) {
@@ -81,7 +96,7 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
     private fun loadWasInformedBy(act: CActivity) {
         val relations = conceptualDao.getActivitieDependency(act.actid)
         relations.forEach {
-            document.writeElement(document.addWasInformedBy(act.actid, it.actid))
+            document.writeElement(document.newWasInformedBy(act.actid, it.actid))
         }
     }
 }

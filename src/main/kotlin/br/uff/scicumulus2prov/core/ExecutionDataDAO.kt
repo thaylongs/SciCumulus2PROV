@@ -50,4 +50,14 @@ class ExecutionDataDAO(val dao: BasicDao) {
         val query = "select * from ${eWorkflow.tag}.$tableName where ewkfid=:id"
         return dao.executeAndFetchTable(query, mapOf("id" to eWorkflow.ewkfid))
     }
+
+    fun getAllOutputTables(eworkflow: EWorkflow): Table {
+        val query = "SELECT r.rname, eact.actid FROM crelation r INNER JOIN eactivity eact ON eact.cactid = r.actid WHERE r.rtype = 'OUTPUT' AND eact.wkfid=:id ORDER BY eact.actid"
+        return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
+    }
+
+    fun getAllExecutionIDsOF(tableName: String, eWorkflow: EWorkflow): Table {
+        val query = "select ik, ok from ${eWorkflow.tag}.$tableName where ewkfid=:id"
+        return dao.executeAndFetchTable(query, mapOf("id" to eWorkflow.ewkfid))
+    }
 }

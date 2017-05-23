@@ -50,7 +50,7 @@ fun qn(qn: QualifiedNames, name: String): QualifiedName {
     return ns.qualifiedName(qn.prefix, name, pFactory)
 }
 
-var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
 class DocumentBuilder(fileOut: File) {
 
@@ -88,13 +88,8 @@ class DocumentBuilder(fileOut: File) {
         return act
     }
 
-    fun newWasInformedBy(actid: Long, dependency: Long): WasInformedBy {
-        val wasInformedBy = pFactory.newWasInformedBy(null, qn(QualifiedNames.PROV, actid.toString()), qn(QualifiedNames.PROV, dependency.toString()))
-        return wasInformedBy
-    }
-
-    fun newWasInformedBy(relid: Long, actid: Long, dependency: Long): WasInformedBy? {
-        val wasInformedBy = pFactory.newWasInformedBy(qn(QualifiedNames.PROV, relid.toString()), qn(QualifiedNames.PROV, actid.toString()), qn(QualifiedNames.PROV, dependency.toString()))
+    fun newWasInformedBy(actid: String, dependency: String): WasInformedBy {
+        val wasInformedBy = pFactory.newWasInformedBy(null, qn(QualifiedNames.PROV, actid), qn(QualifiedNames.PROV, dependency))
         return wasInformedBy
     }
 
@@ -102,6 +97,9 @@ class DocumentBuilder(fileOut: File) {
         return pFactory.newWasGeneratedBy(null, qn(QualifiedNames.PROV, entityID), null, qn(QualifiedNames.PROV, actid))
     }
 
+    fun newWasUseddBy(entityID: String, actid: String): Used {
+        return pFactory.newUsed(qn(QualifiedNames.PROV, actid), qn(QualifiedNames.PROV, entityID))
+    }
 
     fun initDocument() {
         val docNamespace = document.getNamespace()

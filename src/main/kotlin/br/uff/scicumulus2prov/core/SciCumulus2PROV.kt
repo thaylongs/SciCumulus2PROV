@@ -24,6 +24,7 @@ package br.uff.scicumulus2prov.core
 import br.uff.scicumulus2prov.BasicInformation
 import br.uff.scicumulus2prov.model.CActivity
 import br.uff.scicumulus2prov.model.CWorkflow
+import br.uff.scicumulus2prov.model.EActivity
 import br.uff.scicumulus2prov.model.EWorkflow
 import java.io.File
 
@@ -43,19 +44,21 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
         val eworkflow = executionDao.findEWorkflowByTagAndExecTag(basicInfo.workflowTag, basicInfo.execTag)
         val atividades = conceptualDao.findCActivitiesByWkfid(workflow.wkfid)
 
-        atividades.forEach {
+        val eAtividades = atividades.map {
             val executionInfo = executionDao.findEActivityByActAndEWorkflow(it, eworkflow)
-            val act = document.newActicity("a" + it.actid, it.tag, executionInfo.starttime, executionInfo.endtime)
+            val act = document.newActicity("a" + executionInfo.actid, it.tag, executionInfo.starttime, executionInfo.endtime)
             act.setType(it.atype)
             conceptualDao.getAllFieldOfActovity(it.actid).forEach { field ->
                 act.addAttribute("column", field.fname, AttributeType.valueOf(field.ftype.toUpperCase()))
             }
             document.writeElement(act)
+            executionInfo
         }
 
-        atividades.forEach { loadWasInformedBy(it) }
+        eAtividades.forEach { loadWasInformedBy(it, eworkflow) }
         loadAllEntities(workflow, eworkflow)
         loadAllwasGeneratedBy(eworkflow)
+        loadAllwasUsedBy(eworkflow)
         document.finishDocument()
     }
 
@@ -64,10 +67,23 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
         result.rows().forEach { linha ->
             val rname = linha.getString("rname")
             val actid = linha.getString("actid")
-            executionDao.getAllExecutionIDsOF(rname, eworkflow).rows().forEach { ids ->
+            executionDao.getAllExecutionIDsOF(rname, eworkflow, true).rows().forEach { ids ->
                 val id = "${rname}_${eworkflow.ewkfid}_${ids.getObject("ik")}_${ids.getObject("ok")}"
                 val wasGeneratedBy = document.newWasGeneratedBy(id, "a" + actid)
                 document.writeElement(wasGeneratedBy)
+            }
+        }
+    }
+
+    private fun loadAllwasUsedBy(eworkflow: EWorkflow) {
+        val result = executionDao.getAllInputTables(eworkflow)
+        result.rows().forEach { linha ->
+            val rname = linha.getString("rname")
+            val actid = linha.getString("actid")
+            executionDao.getAllExecutionIDsOF(rname, eworkflow, false).rows().forEach { ids ->
+                val id = "${rname}_${eworkflow.ewkfid}_${ids.getObject("ik")}"
+                val wasUsedBy = document.newWasUseddBy(id, "a" + actid)
+                document.writeElement(wasUsedBy)
             }
         }
     }
@@ -92,11 +108,8 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
         }
     }
 
-
-    private fun loadWasInformedBy(act: CActivity) {
-        val relations = conceptualDao.getActivitieDependency(act.actid)
-        relations.forEach {
-            document.writeElement(document.newWasInformedBy(act.actid, it.actid))
-        }
+    private fun loadWasInformedBy(act: EActivity, eworkflow: EWorkflow) {
+        val relations = executionDao.getActivitieDependency(act, eworkflow)
+        relations.forEach { document.writeElement(document.newWasInformedBy("a" + it, "a" + act.actid)) }
     }
 }

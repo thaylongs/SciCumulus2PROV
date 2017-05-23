@@ -56,8 +56,19 @@ class ExecutionDataDAO(val dao: BasicDao) {
         return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
     }
 
-    fun getAllExecutionIDsOF(tableName: String, eWorkflow: EWorkflow): Table {
-        val query = "select ik, ok from ${eWorkflow.tag}.$tableName where ewkfid=:id"
+    fun getAllInputTables(eworkflow: EWorkflow): Table {
+        val query = "SELECT r.rname, eact.actid FROM crelation r INNER JOIN eactivity eact ON eact.cactid = r.actid WHERE r.rtype = 'INPUT' AND eact.wkfid=:id ORDER BY eact.actid"
+        return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
+    }
+
+    fun getAllExecutionIDsOF(tableName: String, eWorkflow: EWorkflow, hasOkColumn: Boolean): Table {
+        val okColumn = if(hasOkColumn) ",ok" else ""
+        val query = "select ik $okColumn from ${eWorkflow.tag}.$tableName where ewkfid=:id"
         return dao.executeAndFetchTable(query, mapOf("id" to eWorkflow.ewkfid))
+    }
+
+    fun getActivitieDependency(eActivity: EActivity, eWorkflow: EWorkflow): List<String> {
+        val query = "SELECT eact.actid FROM eactivity eact INNER JOIN crelation c ON eact.cactid = c.actid WHERE c.dependency = :actid AND eact.wkfid = :eWorkflowId"
+        return dao.executeAndFetch(query, mapOf("actid" to eActivity.cactid, "eWorkflowId" to eWorkflow.ewkfid), String::class.java)
     }
 }

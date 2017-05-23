@@ -21,12 +21,7 @@
  */
 package br.uff.scicumulus2prov.core
 
-import br.uff.scicumulus2prov.BasicInformation
-import br.uff.scicumulus2prov.model.CActivity
-import br.uff.scicumulus2prov.model.CActivityField
-import br.uff.scicumulus2prov.model.CRelation
-import br.uff.scicumulus2prov.model.CWorkflow
-import org.sql2o.Sql2o
+import br.uff.scicumulus2prov.model.*
 
 /**
  * Created by thaylon on 16/05/17.
@@ -56,7 +51,4 @@ open class ConceptualDataDAO(val dao: BasicDao) {
                 mapOf("id" to cWorkflow.wkfid), String::class.java)
     }
 
-    fun getActivitieDependency(id: Long): List<CRelation> {
-        return dao.executeAndFetch("SELECT  c.* from crelation c WHERE c.dependency=:id", mapOf("id" to id), CRelation::class.java)
-    }
 }

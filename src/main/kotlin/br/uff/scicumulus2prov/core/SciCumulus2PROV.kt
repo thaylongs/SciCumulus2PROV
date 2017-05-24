@@ -22,7 +22,6 @@
 package br.uff.scicumulus2prov.core
 
 import br.uff.scicumulus2prov.BasicInformation
-import br.uff.scicumulus2prov.model.CActivity
 import br.uff.scicumulus2prov.model.CWorkflow
 import br.uff.scicumulus2prov.model.EActivity
 import br.uff.scicumulus2prov.model.EWorkflow
@@ -59,7 +58,47 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
         loadAllEntities(workflow, eworkflow)
         loadAllwasGeneratedBy(eworkflow)
         loadAllwasUsedBy(eworkflow)
+        loadAllwasDerivedFrom(eworkflow, eAtividades)
         document.finishDocument()
+    }
+
+    private fun loadAllwasDerivedFrom(eworkflow: EWorkflow, eAtividades: List<EActivity>) {
+        eAtividades.forEach { eAct ->
+            val resultFromInputTableToOutputTable = conceptualDao.getAllDerivedOutputTablesValuesFromInputTables(eAct)
+            resultFromInputTableToOutputTable.ifPresent {
+                val tablesInfo = resultFromInputTableToOutputTable.get()
+                val outputTableName = tablesInfo.tableTo
+                tablesInfo.fromData.forEach { inputTableName, fields ->
+                    val idsData = conceptualDao.getExecutionsIDsFromInputTablesToOutputTables(eworkflow, outputTableName, inputTableName)
+                    for (ids in idsData) {
+                        val actID = "a" + eAct.actid
+                        val fromEntityId = "${inputTableName}_${eworkflow.ewkfid}_${ids[0]}"
+                        val toEntityId = "${outputTableName}_${eworkflow.ewkfid}_${ids[0]}_${ids[1]}"
+                        val wasDerived = document.newwasDerivedFrom(fromEntityId, toEntityId, actID, fields)
+                        document.writeElement(wasDerived)
+                    }
+                }
+            }
+
+            val resultFromOutputTableToInputTable = conceptualDao.getAllDerivedInputTablesValuesFromOutputTables(eAct)
+            resultFromOutputTableToInputTable.ifPresent {
+                val tablesInfo = resultFromInputTableToOutputTable.get()
+                val outputTableName = tablesInfo.tableTo
+                tablesInfo.fromData.forEach { inputTableName, fields ->
+                    val idsData = conceptualDao.getExecutionsIDsFromOutpuTablesToInputTables(eworkflow, outputTableName, inputTableName)
+                    for (ids in idsData) {
+                        val actID = "a" + eAct.actid
+                        val input_ik = ids[0]
+                        val output_ok = ids[1]
+                        val output_ik = ids[2]
+                        val fromEntityId = "${outputTableName}_${eworkflow.ewkfid}_${output_ik}_$output_ok"
+                        val toEntityId = "${inputTableName}_${eworkflow.ewkfid}_$input_ik"
+                        val wasDerived = document.newwasDerivedFrom(fromEntityId, toEntityId, actID, fields)
+                        document.writeElement(wasDerived)
+                    }
+                }
+            }
+        }
     }
 
     private fun loadAllwasGeneratedBy(eworkflow: EWorkflow) {

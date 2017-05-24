@@ -101,10 +101,15 @@ class DocumentBuilder(fileOut: File) {
         return pFactory.newUsed(qn(QualifiedNames.PROV, actid), qn(QualifiedNames.PROV, entityID))
     }
 
+    fun newwasDerivedFrom(usedEntityID: String, generatedEntity: String, actid: String, usedFields: List<String>): WasDerivedFrom {
+        val atts = usedFields.map { pFactory.newAttribute(qn(QualifiedNames.SCICUMULUS, "column"), it, null) }
+        return pFactory.newWasDerivedFrom(null, qn(QualifiedNames.PROV, generatedEntity), qn(QualifiedNames.PROV, usedEntityID), qn(QualifiedNames.PROV, actid), null, null, atts)
+    }
+
     fun initDocument() {
-        val docNamespace = document.getNamespace()
+        val docNamespace = document.namespace
         Namespace.withThreadNamespace(docNamespace)
-        nc.startDocument(document.getNamespace())
+        nc.startDocument(document.namespace)
         nc.flush()
     }
 

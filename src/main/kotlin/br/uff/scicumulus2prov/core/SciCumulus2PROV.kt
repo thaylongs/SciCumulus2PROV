@@ -67,7 +67,7 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
             val resultFromInputTableToOutputTable = conceptualDao.getAllDerivedOutputTablesValuesFromInputTables(eAct)
             resultFromInputTableToOutputTable.ifPresent {
                 val tablesInfo = resultFromInputTableToOutputTable.get()
-                val outputTableName = tablesInfo.tableTo
+                val outputTableName = tablesInfo.toTable
                 tablesInfo.fromData.forEach { inputTableName, fields ->
                     val idsData = conceptualDao.getExecutionsIDsFromInputTablesToOutputTables(eworkflow, outputTableName, inputTableName)
                     for (ids in idsData) {
@@ -82,10 +82,10 @@ class SciCumulus2PROV(val basicInfo: BasicInformation, fileOut: File) {
 
             val resultFromOutputTableToInputTable = conceptualDao.getAllDerivedInputTablesValuesFromOutputTables(eAct)
             resultFromOutputTableToInputTable.ifPresent {
-                val tablesInfo = resultFromInputTableToOutputTable.get()
-                val outputTableName = tablesInfo.tableTo
-                tablesInfo.fromData.forEach { inputTableName, fields ->
-                    val idsData = conceptualDao.getExecutionsIDsFromOutpuTablesToInputTables(eworkflow, outputTableName, inputTableName)
+                val tablesInfo = resultFromOutputTableToInputTable.get()
+                val outputTableName = tablesInfo.fromTable
+                tablesInfo.toData.forEach { inputTableName, fields ->
+                    val idsData = conceptualDao.getExecutionsIDsFromOutpuTablesToInputTables(eworkflow = eworkflow, outputTableName = outputTableName, inputTableName = inputTableName)
                     for (ids in idsData) {
                         val actID = "a" + eAct.actid
                         val input_ik = ids[0]

@@ -4,3 +4,6 @@
 ### Gradle ###
 .gradle
 /build/
+
+## W3C Prov-N
+*.provn

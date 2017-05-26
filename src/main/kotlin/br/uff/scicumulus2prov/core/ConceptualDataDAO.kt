@@ -30,7 +30,9 @@ import kotlin.collections.ArrayList
  * @author Thaylon Guedes Santos
  * @email thaylongs@gmail.com
  */
-data class DerivedFromResultQuery(val tableTo: String, val fromData: Map<String, List<String>>)
+data class DerivedFromResultQueryManyTableToOne(val toTable: String, val fromData: Map<String, List<String>>)
+
+data class DerivedFromResultQueryOneTableToMany(val fromTable: String, val toData: Map<String, List<String>>)
 
 class ConceptualDataDAO(val dao: BasicDao) {
 
@@ -57,7 +59,7 @@ class ConceptualDataDAO(val dao: BasicDao) {
                 mapOf("id" to cWorkflow.wkfid), String::class.java)
     }
 
-    fun getAllDerivedOutputTablesValuesFromInputTables(eActivity: EActivity): Optional<DerivedFromResultQuery> {
+    fun getAllDerivedOutputTablesValuesFromInputTables(eActivity: EActivity): Optional<DerivedFromResultQueryManyTableToOne> {
 
         val query = """
                         SELECT *
@@ -92,10 +94,10 @@ class ConceptualDataDAO(val dao: BasicDao) {
                 else -> map[inputTable] = arrayListOf(fieldName)
             }
         }
-        return Optional.of(DerivedFromResultQuery(outputTableName, map))
+        return Optional.of(DerivedFromResultQueryManyTableToOne(outputTableName, map))
     }
 
-    fun getAllDerivedInputTablesValuesFromOutputTables(eActivity: EActivity): Optional<DerivedFromResultQuery> {
+    fun getAllDerivedInputTablesValuesFromOutputTables(eActivity: EActivity): Optional<DerivedFromResultQueryOneTableToMany> {
         val query = """
                         SELECT *
                         FROM (
@@ -121,16 +123,15 @@ class ConceptualDataDAO(val dao: BasicDao) {
         var outputTableName: String = ""
         val map = hashMapOf<String, ArrayList<String>>()
         resultQuery.rows().forEach { linha ->
-            outputTableName = linha.getString("input_table")
-            val inputTable = linha.getString("output_table")
+            outputTableName = linha.getString("output_table")
+            val inputTable = linha.getString("input_table")
             val fieldName = linha.getString("field_name")
             when (inputTable) {
                 in map -> map[inputTable]!!.add(fieldName)
                 else -> map[inputTable] = arrayListOf(fieldName)
             }
         }
-        return Optional.of(DerivedFromResultQuery(outputTableName, map))
-
+        return Optional.of(DerivedFromResultQueryOneTableToMany(outputTableName, map))
     }
 
     fun getExecutionsIDsFromInputTablesToOutputTables(eworkflow: EWorkflow, outputTableName: String, inputTableName: String): List<Array<Long>> {
@@ -157,7 +158,7 @@ class ConceptualDataDAO(val dao: BasicDao) {
                         WHERE input.ewkfid = :ewkfid
                     """
         val resultQuey = dao.executeAndFetchTable(query, mapOf("ewkfid" to eworkflow.ewkfid))
-        return resultQuey.rows().map { arrayOf(it.getLong("input_ik"), it.getLong("output_ok"), it.getLong("output_ik") ) }
+        return resultQuey.rows().map { arrayOf(it.getLong("input_ik"), it.getLong("output_ok"), it.getLong("output_ik")) }
     }
 
 }

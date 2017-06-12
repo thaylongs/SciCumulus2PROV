@@ -29,17 +29,20 @@ import org.openprovenance.prov.model.Entity
  * @email thaylongs@gmail.com
  */
 
-internal fun Activity.setType(type: String) {
+internal fun Activity.setType(type: String): Activity {
     this.type.add(pFactory.newType(type, ns.qualifiedName(QualifiedNames.SCICUMULUS.prefix, "operator", pFactory)))
+    return this
 }
 
-internal fun Activity.addAttribute(key: String, value: String, type: AttributeType?) {
+internal fun Activity.addAttribute(key: String, value: String, type: AttributeType?): Activity {
     val tempType = if (type == null) null else qn(QualifiedNames.SCICUMULUS, type.name)
     this.other.add(pFactory.newOther(qn(QualifiedNames.SCICUMULUS, key), value, tempType))
+    return this
 }
 
 
-internal fun Entity.addAttribute(key: String, value: String, type: AttributeType?) {
+internal fun Entity.addAttribute(key: String, value: String, type: AttributeType?): Entity {
     val tempType = if (type == null) null else qn(QualifiedNames.SCICUMULUS, type.name)
     this.other.add(pFactory.newOther(qn(QualifiedNames.SCICUMULUS, key), value, tempType))
+    return this
 }

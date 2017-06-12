@@ -22,7 +22,6 @@
 package br.uff.scicumulus2prov.model
 
 import java.sql.Timestamp
-import java.time.LocalDateTime
 
 /**
  * @author Thaylon Guedes Santos
@@ -46,3 +45,19 @@ data class EActivity(val actid: Int,
                      val endtime: Timestamp,
                      val cactid: Int,
                      val templatedir: String)
+
+data class EActivation(val taskid: Int,
+                       val actid: Int,
+                       val machineid: Int,
+                       val exitstatus: Int,
+                       val commandline: String,
+                       val workspace: String,
+                       val failure_tries: Int,
+                       val terr: String,
+                       val tout: String,
+                       val starttime: Timestamp,
+                       val endtime: Timestamp,
+                       val status: String,
+                       val extractor: String,
+                       val constrained: String,
+                       val templatedir: String)

@@ -23,7 +23,6 @@ package br.uff.scicumulus2prov.core
 
 import org.openprovenance.prov.model.*
 import org.openprovenance.prov.notation.NotationConstructor
-import org.openprovenance.prov.notation.Utility
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
@@ -80,7 +79,7 @@ class DocumentBuilder(fileOut: File) {
         return addEntity(QualifiedNames.PROV, id)
     }
 
-    fun newActicity(id: String, label: String, startTime: Timestamp, endTime: Timestamp): Activity {
+    fun newActivity(id: String, label: String, startTime: Timestamp, endTime: Timestamp): Activity {
         val from = DatatypeFactory.newInstance().newXMLGregorianCalendar(startTime.toLocalDateTime().format(formatter))
         val end = DatatypeFactory.newInstance().newXMLGregorianCalendar(endTime.toLocalDateTime().format(formatter))
         val act = pFactory.newActivity(qn(QualifiedNames.PROV, id), from, end, listOf())
@@ -106,6 +105,19 @@ class DocumentBuilder(fileOut: File) {
         return pFactory.newWasDerivedFrom(null, qn(QualifiedNames.PROV, generatedEntity), qn(QualifiedNames.PROV, usedEntityID), qn(QualifiedNames.PROV, actid), null, null, atts)
     }
 
+    fun newAgent(agentId: String, agentName: String): Agent {
+        return pFactory.newAgent(qn(QualifiedNames.PROV, agentId), agentName)
+    }
+
+    fun wasAssociatedWith(agentID: String, actId: String): WasAssociatedWith {
+        return pFactory.newWasAssociatedWith(null, qn(QualifiedNames.PROV, actId), qn(QualifiedNames.PROV, agentID))
+    }
+
+    fun newWasStartedBy(actID: String, taskID: String, startTime: Timestamp): StatementOrBundle {
+        val startTime = DatatypeFactory.newInstance().newXMLGregorianCalendar(startTime.toLocalDateTime().format(formatter))
+        return pFactory.newWasStartedBy(null, qn(QualifiedNames.PROV, taskID), null, qn(QualifiedNames.PROV, actID), startTime, null)
+    }
+
     fun initDocument() {
         val docNamespace = document.namespace
         Namespace.withThreadNamespace(docNamespace)
@@ -128,4 +140,5 @@ class DocumentBuilder(fileOut: File) {
         nc.flush()
         nc.close()
     }
+
 }

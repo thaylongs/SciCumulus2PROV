@@ -151,14 +151,13 @@ class ConceptualDataDAO(val dao: BasicDao) {
         val query = """
                         SELECT
                           input.ik  AS input_ik,
-                          output.ok AS output_ok,
-                          output.ik AS output_ik
+                          output.ok AS output_ok
                         FROM "${eworkflow.tag}"."$inputTableName" input INNER JOIN "${eworkflow.tag}"."$outputTableName" output
                             ON input.ewkfid = output.ewkfid AND input.ik = output.ok
                         WHERE input.ewkfid = :ewkfid
                     """
         val resultQuey = dao.executeAndFetchTable(query, mapOf("ewkfid" to eworkflow.ewkfid))
-        return resultQuey.rows().map { arrayOf(it.getLong("input_ik"), it.getLong("output_ok"), it.getLong("output_ik")) }
+        return resultQuey.rows().map { arrayOf(it.getLong("input_ik"), it.getLong("output_ok")) }
     }
 
 }

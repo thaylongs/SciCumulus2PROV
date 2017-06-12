@@ -23,55 +23,28 @@ package br.uff.scicumulus2prov
 
 import br.uff.scicumulus2prov.core.SciCumulus2PROV
 import com.beust.jcommander.Parameter
+import javafx.application.Application
+import javafx.fxml.FXMLLoader
+import javafx.scene.Parent
+import javafx.scene.Scene
+import javafx.stage.Stage
 import java.io.File
 
 /**
  * @author Thaylon Guedes Santos
  * @email thaylongs@gmail.com
  */
-class Args {
-    @Parameter(names = arrayOf("--xml"), required = true, description = "The Xml configuration of SciCumulus")
-    var xml: String? = null
-    @Parameter(names = arrayOf("--prov"), required = true, description = "The PROV-N file name for write the provenance extracted from database")
-    var prov: String? = null
-    @Parameter(names = arrayOf("-h"), help = true, description = "Show this help text")
-    var needHelp: Boolean = false
+
+class FXInit : Application() {
+    override fun start(stage: Stage) {
+        val root = FXMLLoader.load<Parent>(javaClass.getResource("/gui.fxml"))
+        val scene = Scene(root)
+        stage.setScene(scene)
+        stage.isResizable = false
+        stage.show()
+    }
 }
 
-class BasicInformation(val dbName: String,
-                       val dbPassword: String,
-                       val dbUsername: String,
-                       val dbHostname: String,
-                       val dbPort: Int,
-                       val workflowTag: String,
-                       val execTag: String)
-
-fun main(argv: Array<String>) {
-//    val args = Args()
-//    val jCommander = JCommander(args)
-//    jCommander.setProgramName("SciCumulus2PROV")
-//    try {
-//        jCommander.parse(*argv)
-//        if (args.needHelp) {
-//            jCommander.usage()
-//            return
-//        }
-//    } catch (e: Exception) {
-//        jCommander.usage()
-//        return
-//    }
-//    val dbConInfoWrapper = ExtractXmlInfo.getDataBaseConnectionFromXml(File(args.xml))
-//    val dbConInfo = dbConInfoWrapper.orElseThrow { Exception("As configurações não foram encontradas no xml") }!!
-
-    var basicInfo = BasicInformation(
-//            dbName = "sciPhyTreeMiner",
-            dbName = "32cores",
-            dbPassword = "1234",
-            dbUsername = "postgres",
-            dbHostname = "localhost",
-            dbPort = 5432,
-            workflowTag = "sciphytreeminer",
-            execTag = "wftreeminer_1-1")
-
-    SciCumulus2PROV(basicInfo,File("output.provn")).start()
+fun main(args: Array<String>) {
+    Application.launch(FXInit::class.java, *args)
 }

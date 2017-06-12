@@ -22,6 +22,7 @@
 package br.uff.scicumulus2prov.core
 
 import br.uff.scicumulus2prov.model.CActivity
+import br.uff.scicumulus2prov.model.EActivation
 import br.uff.scicumulus2prov.model.EActivity
 import br.uff.scicumulus2prov.model.EWorkflow
 import org.sql2o.data.Table
@@ -51,24 +52,63 @@ class ExecutionDataDAO(val dao: BasicDao) {
         return dao.executeAndFetchTable(query, mapOf("id" to eWorkflow.ewkfid))
     }
 
-    fun getAllOutputTables(eworkflow: EWorkflow): Table {
-        val query = "SELECT r.rname, eact.actid FROM crelation r INNER JOIN eactivity eact ON eact.cactid = r.actid WHERE r.rtype = 'OUTPUT' AND eact.wkfid=:id ORDER BY eact.actid"
-        return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
-    }
-
-    fun getAllInputTables(eworkflow: EWorkflow): Table {
-        val query = "SELECT r.rname, eact.actid FROM crelation r INNER JOIN eactivity eact ON eact.cactid = r.actid WHERE r.rtype = 'INPUT' AND eact.wkfid=:id ORDER BY eact.actid"
-        return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
-    }
-
-    fun getAllExecutionIDsOF(tableName: String, eWorkflow: EWorkflow, hasOkColumn: Boolean): Table {
-        val okColumn = if(hasOkColumn) ",ok" else ""
-        val query = "select ik $okColumn from ${eWorkflow.tag}.$tableName where ewkfid=:id"
-        return dao.executeAndFetchTable(query, mapOf("id" to eWorkflow.ewkfid))
-    }
-
     fun getActivitieDependency(eActivity: EActivity, eWorkflow: EWorkflow): List<String> {
         val query = "SELECT eact.actid FROM eactivity eact INNER JOIN crelation c ON eact.cactid = c.actid WHERE c.dependency = :actid AND eact.wkfid = :eWorkflowId"
         return dao.executeAndFetch(query, mapOf("actid" to eActivity.cactid, "eWorkflowId" to eWorkflow.ewkfid), String::class.java)
+    }
+
+    fun getEActivationsByEActivity(eactivity: EActivity): List<EActivation> {
+        return dao.executeAndFetch("select * from eactivation where actid=:id", mapOf("id" to eactivity.actid), EActivation::class.java)
+    }
+
+    fun getAllUsedMachines(eWorkflow: EWorkflow): Table {
+        val query = """
+                        SELECT
+                          emachine.machineid AS machine_id,
+                          emachine.hostname,
+                          emachine.address,
+                          emachine.mflopspersecond,
+                          eactivation.taskid
+                        FROM emachine
+                          INNER JOIN eactivation ON emachine.machineid = eactivation.machineid
+                          INNER JOIN eactivity ON eactivation.actid = eactivity.actid
+                        WHERE eactivity.wkfid = :id
+                    """
+        return dao.executeAndFetchTable(query, mapOf("id" to eWorkflow.ewkfid))
+    }
+
+    fun getAllRelationBetweenActivityAndActivation(eworkflow: EWorkflow): Table {
+        val query = """
+                        SELECT
+                          eactivation.taskid,
+                          eactivity.actid,
+                          eactivation.starttime
+                        FROM eactivation
+                          INNER JOIN eactivity ON eactivation.actid = eactivity.actid
+                        WHERE eactivity.wkfid = :id
+                    """
+        return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
+    }
+
+    fun getKeySpaceData(eworkflow: EWorkflow): Table {
+        val query = """
+                        SELECT
+                          ekeyspace.taskid,
+                          ekeyspace.relationname,
+                          ekeyspace.relationtype,
+                          ekeyspace.fik
+                        FROM ekeyspace
+                          INNER JOIN eactivity ON eactivity.actid = ekeyspace.actid
+                        WHERE eactivity.wkfid = :id
+                    """
+        return dao.executeAndFetchTable(query, mapOf("id" to eworkflow.ewkfid))
+    }
+
+    fun getAllWorkflows(): List<String> {
+        return dao.executeAndFetch("select tag from cworkflow", mapOf(), String::class.java)
+    }
+
+    fun getAllExecutionOfWorkflows(workflowTag: String): List<String> {
+        return dao.executeAndFetch("select tagexec from eworkflow where tag=:tag", mapOf("tag" to workflowTag), String::class.java)
     }
 }

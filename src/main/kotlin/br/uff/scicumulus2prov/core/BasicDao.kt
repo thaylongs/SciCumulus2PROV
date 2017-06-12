@@ -21,22 +21,24 @@
  */
 package br.uff.scicumulus2prov.core
 
-import br.uff.scicumulus2prov.BasicInformation
 import org.sql2o.Sql2o
-import org.sql2o.data.LazyTable
 import org.sql2o.data.Table
 
 /**
  * @author Thaylon Guedes Santos
  * @email thaylongs@gmail.com
  */
-class BasicDao(basicInfo: BasicInformation) {
+class BasicDao(dbName: String,
+               dbPassword: String,
+               dbUsername: String,
+               dbHostname: String,
+               dbPort: Int) {
 
     private val sql2o: Sql2o
 
     init {
-        var url = "jdbc:postgresql://${basicInfo.dbHostname}:${basicInfo.dbPort}/${basicInfo.dbName}"
-        sql2o = Sql2o(url, basicInfo.dbUsername, basicInfo.dbPassword)
+        var url = "jdbc:postgresql://$dbHostname:$dbPort/$dbName"
+        sql2o = Sql2o(url, dbUsername, dbPassword)
     }
 
     fun <R> executeAndFetch(query: String, parameter: Map<String, Any>, returnType: Class<R>): List<R> {

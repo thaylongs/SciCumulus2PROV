@@ -27,10 +27,7 @@ import br.uff.scicumulus2prov.core.SciCumulus2PROV
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
-import javafx.scene.control.Button
-import javafx.scene.control.ListView
-import javafx.scene.control.PasswordField
-import javafx.scene.control.TextField
+import javafx.scene.control.*
 import javafx.stage.FileChooser
 import java.net.URL
 import java.util.*
@@ -93,9 +90,14 @@ class MainGUI : Initializable {
                 FileChooser.ExtensionFilter("All Files", "*.*"))
         val selectedFile = fileChooser.showSaveDialog(execucoesList.scene.window)
         val workflowTag = workflowsList.selectionModel.selectedItem
-        if (execTag != null && workflowTag != null  && selectedFile!=null) {
+        if (execTag != null && workflowTag != null && selectedFile != null) {
             if (selectedFile.exists()) selectedFile.delete()
             SciCumulus2PROV(dao = basicDao!!, execTag = execTag, fileOut = selectedFile, workflowTag = workflowTag).start()
+            val dialog = Alert(Alert.AlertType.INFORMATION)
+            dialog.title = "Success"
+            dialog.headerText = "The provenance file was saved with success"
+            dialog.contentText = "Location: ${selectedFile.absolutePath}"
+            dialog.showAndWait()
         }
     }
 }

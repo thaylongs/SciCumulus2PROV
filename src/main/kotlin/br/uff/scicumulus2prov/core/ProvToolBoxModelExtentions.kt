@@ -22,6 +22,7 @@
 package br.uff.scicumulus2prov.core
 
 import org.openprovenance.prov.model.Activity
+import org.openprovenance.prov.model.Agent
 import org.openprovenance.prov.model.Entity
 
 /**
@@ -34,14 +35,24 @@ internal fun Activity.setType(type: String): Activity {
     return this
 }
 
-internal fun Activity.addAttribute(key: String, value: String, type: AttributeType?): Activity {
+internal fun Activity.addAtt(key: String, value: String, type: AttributeType?): Activity {
     val tempType = if (type == null) null else qn(QualifiedNames.SCICUMULUS, type.name)
     this.other.add(pFactory.newOther(qn(QualifiedNames.SCICUMULUS, key), value, tempType))
     return this
 }
 
+internal fun Entity.setType(value: String): Entity {
+    this.type.add(pFactory.newType(value,null))
+    return this
+}
 
-internal fun Entity.addAttribute(key: String, value: String, type: AttributeType?): Entity {
+internal fun Entity.addAtt(key: String, value: String, type: AttributeType?): Entity {
+    val tempType = if (type == null) null else qn(QualifiedNames.SCICUMULUS, type.name)
+    this.other.add(pFactory.newOther(qn(QualifiedNames.SCICUMULUS, key), value, tempType))
+    return this
+}
+
+internal fun Agent.addAtt(key: String, value: String, type: AttributeType?): Agent {
     val tempType = if (type == null) null else qn(QualifiedNames.SCICUMULUS, type.name)
     this.other.add(pFactory.newOther(qn(QualifiedNames.SCICUMULUS, key), value, tempType))
     return this

@@ -57,8 +57,8 @@ class MainGUI : Initializable {
 
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
-        conectarBtn.setOnAction { onClickConectar() }
-        exportarBtn.setOnAction { onClickExportar() }
+        conectarBtn.setOnMouseClicked { onClickConectar() }
+        exportarBtn.setOnMouseClicked { onClickExportar() }
         workflowsList.selectionModel.selectedItemProperty().addListener({ observable, oldValue, newValue -> if (newValue != null) onSelectWorkflow(newValue) })
     }
 
@@ -92,10 +92,10 @@ class MainGUI : Initializable {
                 FileChooser.ExtensionFilter("W3C Prov-N", "*.provn"),
                 FileChooser.ExtensionFilter("All Files", "*.*"))
         val selectedFile = fileChooser.showSaveDialog(execucoesList.scene.window)
-        if (execTag != null) {
-            SciCumulus2PROV(dao = basicDao!!, execTag = execTag, fileOut = selectedFile, workflowTag = workflowsList.selectionModel.selectedItem).start()
+        val workflowTag = workflowsList.selectionModel.selectedItem
+        if (execTag != null && workflowTag != null  && selectedFile!=null) {
+            if (selectedFile.exists()) selectedFile.delete()
+            SciCumulus2PROV(dao = basicDao!!, execTag = execTag, fileOut = selectedFile, workflowTag = workflowTag).start()
         }
     }
-
-
 }

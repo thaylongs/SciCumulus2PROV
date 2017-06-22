@@ -25,6 +25,7 @@ import org.openprovenance.prov.model.*
 import org.openprovenance.prov.notation.NotationConstructor
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.sql.Timestamp
 import java.time.format.DateTimeFormatter
@@ -39,25 +40,27 @@ enum class QualifiedNames(var prefix: String) {
 }
 
 enum class AttributeType(var prefix: String) {
-    STRING("string"), FILE("file"), FLOAT("float")
+    STRING("string"), FILE("file"), FLOAT("float"), OPERATOR("operator")
 }
 
 val ns: Namespace = Namespace()
 val pFactory: ProvFactory = org.openprovenance.prov.xml.ProvFactory()
 
-fun qn(qn: QualifiedNames, name: String): QualifiedName {
+fun qn(qn: QualifiedNames, name: String?): QualifiedName {
     return ns.qualifiedName(qn.prefix, name, pFactory)
 }
 
 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-class DocumentBuilder(fileOut: File) {
+class DocumentBuilder(outputStream: OutputStream) {
+
+    constructor(fileOut: File) : this(FileOutputStream(fileOut))
 
     private val SCICUMULUS_NS = "https://scicumulusc2.wordpress.com"
     private val SCICUMULUS_PREFIX = "sci"
     val document = pFactory.newDocument()
-    val output = OutputStreamWriter(FileOutputStream(fileOut), "UTF-8")
-    private val nc: NotationConstructor
+    val output = OutputStreamWriter(outputStream, "UTF-8")
+    val nc: NotationConstructor
     private val bt: BeanTraversal
     private val u: ProvUtilities = ProvUtilities()
 
@@ -70,13 +73,19 @@ class DocumentBuilder(fileOut: File) {
         initDocument()
     }
 
-    fun addEntity(qn: QualifiedNames, id: String): Entity {
+    fun newPlanEntity(id: String, label: String): Entity {
+        val plan = pFactory.newEntity(qn(QualifiedNames.PROV, id), label)
+        plan.setType("PLAN")
+        return plan
+    }
+
+    fun newEntity(qn: QualifiedNames, id: String): Entity {
         val entity = pFactory.newEntity(qn(qn, id))
         return entity
     }
 
-    fun addEntity(id: String): Entity {
-        return addEntity(QualifiedNames.PROV, id)
+    fun newEntity(id: String): Entity {
+        return newEntity(QualifiedNames.PROV, id)
     }
 
     fun newActivity(id: String, label: String, startTime: Timestamp, endTime: Timestamp): Activity {
@@ -87,8 +96,8 @@ class DocumentBuilder(fileOut: File) {
         return act
     }
 
-    fun newWasInformedBy(actid: String, dependency: String): WasInformedBy {
-        val wasInformedBy = pFactory.newWasInformedBy(null, qn(QualifiedNames.PROV, actid), qn(QualifiedNames.PROV, dependency))
+    fun newWasInformedBy(actid: Activity, dependency: Activity): WasInformedBy {
+        val wasInformedBy = pFactory.newWasInformedBy(null, actid.id, dependency.id)
         return wasInformedBy
     }
 
@@ -100,22 +109,51 @@ class DocumentBuilder(fileOut: File) {
         return pFactory.newUsed(qn(QualifiedNames.PROV, actid), qn(QualifiedNames.PROV, entityID))
     }
 
-    fun newwasDerivedFrom(usedEntityID: String, generatedEntity: String, actid: String, usedFields: List<String>): WasDerivedFrom {
-        val atts = usedFields.map { pFactory.newAttribute(qn(QualifiedNames.SCICUMULUS, "column"), it, null) }
-        return pFactory.newWasDerivedFrom(null, qn(QualifiedNames.PROV, generatedEntity), qn(QualifiedNames.PROV, usedEntityID), qn(QualifiedNames.PROV, actid), null, null, atts)
+    fun newWasUseddBy(entityID: Entity, actid: Activity): Used {
+        return pFactory.newUsed(actid.id, entityID.id)
+    }
+
+    /**
+     * @param usedEntityID
+     * @param generatedEntity
+     * @param actid
+     *
+     */
+    fun newWasDerivedFrom(usedEntityID: Entity, generatedEntity: Entity, usedFields: List<String>): WasDerivedFrom {
+        var count = 1
+        val res = pFactory.newWasDerivedFrom(generatedEntity.id, usedEntityID.id)
+        res.activity = null
+        res.generation = null
+        res.usage = null
+        pFactory.setAttributes(res, usedFields.map { pFactory.newAttribute(qn(QualifiedNames.SCICUMULUS, "column_${count++}"), it, null) })
+        return res
     }
 
     fun newAgent(agentId: String, agentName: String): Agent {
         return pFactory.newAgent(qn(QualifiedNames.PROV, agentId), agentName)
     }
 
-    fun wasAssociatedWith(agentID: String, actId: String): WasAssociatedWith {
-        return pFactory.newWasAssociatedWith(null, qn(QualifiedNames.PROV, actId), qn(QualifiedNames.PROV, agentID))
+    fun newWasAssociatedWith(agentID: Agent, actId: Activity): WasAssociatedWith {
+        return pFactory.newWasAssociatedWith(null, actId.id, agentID.id)
     }
 
-    fun newWasStartedBy(actID: String, taskID: String, startTime: Timestamp): StatementOrBundle {
+    fun newWasStartedBy(actID: String, taskID: String, startTime: Timestamp): WasStartedBy {
         val startTime = DatatypeFactory.newInstance().newXMLGregorianCalendar(startTime.toLocalDateTime().format(formatter))
         return pFactory.newWasStartedBy(null, qn(QualifiedNames.PROV, taskID), null, qn(QualifiedNames.PROV, actID), startTime, null)
+    }
+
+    fun newHadMember(entityIDFrom: Entity, entityIDTarget: Entity): HadMember {
+        val hadMember = pFactory.newHadMember(entityIDFrom.id, entityIDTarget.id)
+        return hadMember
+    }
+
+    fun newWasAttributedTo(entity: Entity, agent: Agent): WasAttributedTo {
+        val wasAttributedTo = pFactory.newWasAttributedTo(null, entity.id, agent.id)
+        return wasAttributedTo
+    }
+
+    fun newActedOnBehalfOf(delegate: Agent, responsible: Agent): ActedOnBehalfOf {
+        return pFactory.newActedOnBehalfOf(null, delegate.id, responsible.id)
     }
 
     fun initDocument() {
@@ -140,5 +178,6 @@ class DocumentBuilder(fileOut: File) {
         nc.flush()
         nc.close()
     }
+
 
 }

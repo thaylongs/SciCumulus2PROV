@@ -22,7 +22,6 @@
 package br.uff.scicumulus2prov.core
 
 import br.uff.scicumulus2prov.model.*
-import org.sql2o.data.Table
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -59,7 +58,7 @@ class ConceptualDataDAO(val dao: BasicDao) {
                 mapOf("id" to cWorkflow.wkfid), String::class.java)
     }
 
-    fun getAllDerivedOutputTablesValuesFromInputTables(eActivity: EActivity): Optional<DerivedFromResultQueryManyTableToOne> {
+    fun getAllDerivedOutputTablesValuesFromInputTables(cActivity: CActivity): Optional<DerivedFromResultQueryManyTableToOne> {
 
         val query = """
                         SELECT *
@@ -81,7 +80,7 @@ class ConceptualDataDAO(val dao: BasicDao) {
                                  relation.rtype = 'INPUT' AND relation.actid = :actid
                              ) AS result
                     """
-        val resultQuery = dao.executeAndFetchTable(query, mapOf("actid" to eActivity.cactid))
+        val resultQuery = dao.executeAndFetchTable(query, mapOf("actid" to cActivity.actid))
         if (resultQuery.rows().isEmpty()) return Optional.empty()
         var outputTableName: String = ""
         val map = hashMapOf<String, ArrayList<String>>()
@@ -97,7 +96,7 @@ class ConceptualDataDAO(val dao: BasicDao) {
         return Optional.of(DerivedFromResultQueryManyTableToOne(outputTableName, map))
     }
 
-    fun getAllDerivedInputTablesValuesFromOutputTables(eActivity: EActivity): Optional<DerivedFromResultQueryOneTableToMany> {
+    fun getAllDerivedInputTablesValuesFromOutputTables(cActivity: CActivity): Optional<DerivedFromResultQueryOneTableToMany> {
         val query = """
                         SELECT *
                         FROM (
@@ -118,7 +117,7 @@ class ConceptualDataDAO(val dao: BasicDao) {
                                  relation.dependency = :actid
                              ) AS result
                     """
-        val resultQuery = dao.executeAndFetchTable(query, mapOf("actid" to eActivity.cactid))
+        val resultQuery = dao.executeAndFetchTable(query, mapOf("actid" to cActivity.actid))
         if (resultQuery.rows().isEmpty()) return Optional.empty()
         var outputTableName: String = ""
         val map = hashMapOf<String, ArrayList<String>>()

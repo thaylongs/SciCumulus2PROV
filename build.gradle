@@ -2,7 +2,7 @@ group 'br.uff'
 version '0.1'
 
 buildscript {
-    ext.kotlin_version = '1.1.2'
+    ext.kotlin_version = '1.1.2-5'
     ext.provlib_version = '0.7.3'
 
     repositories {

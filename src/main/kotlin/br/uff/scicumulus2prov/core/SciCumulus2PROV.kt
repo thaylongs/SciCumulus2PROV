@@ -49,36 +49,36 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
         val workflow = conceptualDao.findCWorkflowByTAG(workflowTag)
         val eWorkflow = executionDao.findEWorkflowByTagAndExecTag(workflowTag, execTag)
         /*Process Plan Workflow Entity*/
-        val planWorklfow = document.newPlanEntity("entity_workflow_" + workflow.tag, workflow.tag)
-                .addAtt("NAME", workflow.tag, null)
+        val planWorkflow = document.newPlanEntity("entity_workflow_" + workflow.tag, workflow.tag)
                 .addAtt("DESCRIPTION", workflow.description, null)
-        document.writeElement(planWorklfow)
+        document.writeElement(planWorkflow)
         /*Process Execution Workflow*/
         val startAndEndTimeOfWorkflow = executionDao.getStartAndEndTimeOfExecutionWorkflow(eWorkflow)
         val workflowAct = document.newActivity("act_" + execTag, "Execute Workflow", startTime = startAndEndTimeOfWorkflow[0], endTime = startAndEndTimeOfWorkflow[1])
         document.writeElement(workflowAct)
-        document.writeElement(document.newWasUseddBy(planWorklfow, workflowAct))
+        document.writeElement(document.newWasUseddBy(planWorkflow, workflowAct))
         /*Process WActivities*/
         val WActivities = conceptualDao.findCActivitiesByWkfid(workflow.wkfid)
 
         val allTask = HashMap<String, Activity>()
         val allAWactivities = WActivities.map { cAct ->
             val eAct = executionDao.findEActivityByActAndEWorkflow(cAct, eWorkflow)
-            val wActivity = document.newPlanEntity("act_" + eAct.actid, cAct.tag).addAtt("TYPE", cAct.atype, AttributeType.OPERATOR)
+            val wActivity = document.newPlanEntity("entity_activity_" + eAct.tag, cAct.tag)
+                    .addAtt("TYPE", cAct.atype, AttributeType.OPERATOR)
             var count = 1
             conceptualDao.getAllFieldOfActovity(cAct.actid).forEach { (fname, ftype) ->
                 wActivity.addAtt("column_${count++}", fname, AttributeType.valueOf(ftype.toUpperCase()))
             }
             document.writeElement(wActivity)
-            document.writeElement(document.newHadMember(planWorklfow, wActivity))
+            document.writeElement(document.newHadMember(planWorkflow, wActivity))
             executionDao.getEActivationsByEActivity(eAct).forEach {
-                val task = document.newActivity("act_task" + it.taskid, "TaskOf:" + cAct.tag, it.starttime, it.endtime)
+                val task = document.newActivity("act_task_" + it.taskid, "TaskOf:" + cAct.tag, it.starttime, it.endtime)
                 task.setType("TASK")
                         .addAtt("status", it.status, null)
                         .addAtt("workspace", it.workspace, null)
                         .addAtt("extractor", it.extractor, null)
                         .addAtt("commandline", it.commandline, null)
-                allTask.put("act_task" + it.taskid, task)
+                allTask.put("act_task_" + it.taskid, task)
                 document.writeElement(task)
                 /*Create relationship*/
                 document.writeElement(document.newWasUseddBy(wActivity, task))
@@ -86,20 +86,19 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
             }
             wActivity//yield the Execution Activity
         }
-        loadAllEntities(workflow, eWorkflow)
-        loadAllwasUsedByAndWasGeneratedBy(eWorkflow)
-        loadAllwasDerivedFrom(eWorkflow, WActivities)
-        loadAllAgentsAndRelationship(eWorkflow, planWorklfow, allAWactivities, allTask)
+        loadAllEntities(workflow, eWorkflow, WActivities)
+
+        loadAllAgentsAndRelationship(eWorkflow, planWorkflow, allAWactivities, allTask)
         document.finishDocument()
     }
 
     private fun loadAllwasUsedByAndWasGeneratedBy(eworkflow: EWorkflow) {
         val result = executionDao.getKeySpaceData(eworkflow)
         result.rows().forEach { linha ->
-            val taskId = "act_task" + linha.getString("taskid")
+            val taskId = "act_task_" + linha.getString("taskid")
             val rname = linha.getString("relationname")
             val relationtype = linha.getString("relationtype")
-            val id = "${rname}_${eworkflow.ewkfid}_${linha.getObject("fik")}"
+            val id = "${rname}_${linha.getObject("fik")}"
             val obj = when (relationtype) {
                 "INPUT" -> document.newWasUseddBy(id, taskId)
                 "OUTPUT" -> document.newWasGeneratedBy(id, taskId)
@@ -109,7 +108,8 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
         }
     }
 
-    private fun loadAllAgentsAndRelationship(eworkflow: EWorkflow, planWorklfow: Entity, allAWactivities: List<Entity>, allTask: HashMap<String, Activity>) {
+    private fun loadAllAgentsAndRelationship(eworkflow: EWorkflow, planWorklfow: Entity, allAWactivities: List<Entity>,
+                                             allTask: HashMap<String, Activity>) {
         val scicumulusAgent = document.newAgent("softwareAgent", "SciCumulus")
         val scientistAgent = document.newAgent("scientistAgent", "Scientist")
         document.writeElement(scicumulusAgent)
@@ -131,7 +131,7 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
                 document.writeElement(document.newActedOnBehalfOf(machineAgent, scientistAgent))
                 machinesIDs.put(machineAgentId, machineAgent)
             }
-            document.writeElement(document.newWasAssociatedWith(machinesIDs[machineAgentId]!!, allTask["act_task" + it.getString("taskid")]!!))
+            document.writeElement(document.newWasAssociatedWith(machinesIDs[machineAgentId]!!, allTask["act_task_" + it.getString("taskid")]!!))
         }
     }
 
@@ -144,8 +144,8 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
                 tablesInfo.fromData.forEach { inputTableName, fields ->
                     val idsData = conceptualDao.getExecutionsIDsFromInputTablesToOutputTables(eworkflow, outputTableName, inputTableName)
                     for (ids in idsData) {
-                        val fromEntityId = document.newEntity("${inputTableName}_${eworkflow.ewkfid}_${ids[0]}")
-                        val toEntityId = document.newEntity("${outputTableName}_${eworkflow.ewkfid}_${ids[1]}")
+                        val fromEntityId = document.newEntity("${inputTableName}_${ids[0]}")
+                        val toEntityId = document.newEntity("${outputTableName}_${ids[1]}")
                         document.writeElement(document.newWasDerivedFrom(fromEntityId, toEntityId, fields))
                     }
                 }
@@ -159,8 +159,8 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
                     for (ids in idsData) {
                         val input_ik = ids[0]
                         val output_ok = ids[1]
-                        val fromEntityId = document.newEntity("${outputTableName}_${eworkflow.ewkfid}_$output_ok")
-                        val toEntityId = document.newEntity("${inputTableName}_${eworkflow.ewkfid}_$input_ik")
+                        val fromEntityId = document.newEntity("${outputTableName}_$output_ok")
+                        val toEntityId = document.newEntity("${inputTableName}_$input_ik")
                         val wasDerived = document.newWasDerivedFrom(fromEntityId, toEntityId, fields)
                         document.writeElement(wasDerived)
                     }
@@ -169,18 +169,20 @@ class SciCumulus2PROV(dao: BasicDao, val workflowTag: String, val execTag: Strin
         }
     }
 
-    private fun loadAllEntities(workflow: CWorkflow, eworkflow: EWorkflow) {
+    private fun loadAllEntities(workflow: CWorkflow, eWorkflow: EWorkflow, WActivities: List<CActivity>) {
         val relations = conceptualDao.getAllRelation(workflow)
         relations.forEach { relation ->
-            val table = executionDao.getAllDataFrom(eworkflow, relation)
+            val table = executionDao.getAllDataFrom(eWorkflow, relation)
             val colunasValidas = table.columns().filter { it.name != "ik" && it.name != "ewkfid" && it.name != "ok" }
             val containsOkColumn = table.columns().any { it.name == "ok" }
             for (linha in table.rows()) {
-                val id = "${relation}_${eworkflow.ewkfid}_" + if (containsOkColumn) linha.getObject("ok") else linha.getObject("ik")
+                val id = "${relation}_" + if (containsOkColumn) linha.getObject("ok") else linha.getObject("ik")
                 val entity = document.newEntity(id)
                 colunasValidas.forEach { coluna -> entity.addAtt(coluna.name, linha.getString(coluna.index), null) }
                 document.writeElement(entity)
             }
         }
+        loadAllwasUsedByAndWasGeneratedBy(eWorkflow)
+        loadAllwasDerivedFrom(eWorkflow, WActivities)
     }
 }

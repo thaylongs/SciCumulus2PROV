@@ -137,11 +137,6 @@ class DocumentBuilder(outputStream: OutputStream) {
         return pFactory.newWasAssociatedWith(null, actId.id, agentID.id)
     }
 
-    fun newWasStartedBy(actID: String, taskID: String, startTime: Timestamp): WasStartedBy {
-        val startTime = DatatypeFactory.newInstance().newXMLGregorianCalendar(startTime.toLocalDateTime().format(formatter))
-        return pFactory.newWasStartedBy(null, qn(QualifiedNames.PROV, taskID), null, qn(QualifiedNames.PROV, actID), startTime, null)
-    }
-
     fun newHadMember(entityIDFrom: Entity, entityIDTarget: Entity): HadMember {
         val hadMember = pFactory.newHadMember(entityIDFrom.id, entityIDTarget.id)
         return hadMember
